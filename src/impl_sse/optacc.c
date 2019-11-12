@@ -57,18 +57,18 @@
 int
 p7_OptimalAccuracy(const P7_OPROFILE *om, const P7_OMX *pp, P7_OMX *ox, float *ret_e)
 {
-  register __m128 mpv, dpv, ipv;   /* previous row values                                       */
-  register __m128 sv;		   /* temp storage of 1 curr row value in progress              */
-  register __m128 xEv;		   /* E state: keeps max for Mk->E as we go                     */
-  register __m128 xBv;		   /* B state: splatted vector of B[i-1] for B->Mk calculations */
-  register __m128 dcv;
+  register simde__m128 mpv, dpv, ipv;   /* previous row values                                       */
+  register simde__m128 sv;		   /* temp storage of 1 curr row value in progress              */
+  register simde__m128 xEv;		   /* E state: keeps max for Mk->E as we go                     */
+  register simde__m128 xBv;		   /* B state: splatted vector of B[i-1] for B->Mk calculations */
+  register simde__m128 dcv;
   float  *xmx = ox->xmx;
-  __m128 *dpc = ox->dpf[0];        /* current row, for use in {MDI}MO(dpp,q) access macro       */
-  __m128 *dpp;                     /* previous row, for use in {MDI}MO(dpp,q) access macro      */
-  __m128 *ppp;			   /* quads in the <pp> posterior probability matrix            */
-  __m128 *tp;			   /* quads in the <om->tfv> transition scores                  */
-  __m128 zerov = _mm_setzero_ps();
-  __m128 infv  = _mm_set1_ps(-eslINFINITY);
+  simde__m128 *dpc = ox->dpf[0];        /* current row, for use in {MDI}MO(dpp,q) access macro       */
+  simde__m128 *dpp;                     /* previous row, for use in {MDI}MO(dpp,q) access macro      */
+  simde__m128 *ppp;			   /* quads in the <pp> posterior probability matrix            */
+  simde__m128 *tp;			   /* quads in the <om->tfv> transition scores                  */
+  simde__m128 zerov = simde_mm_setzero_ps();
+  simde__m128 infv  = simde_mm_set1_ps(-eslINFINITY);
   int M = om->M;
   int Q = p7O_NQF(M);
   int q;
@@ -93,19 +93,19 @@ p7_OptimalAccuracy(const P7_OPROFILE *om, const P7_OMX *pp, P7_OMX *ox, float *r
       tp  = om->tfv;		/* transition probabilities */
       dcv = infv;
       xEv = infv;
-      xBv = _mm_set1_ps(XMXo(i-1, p7X_B));
+      xBv = simde_mm_set1_ps(XMXo(i-1, p7X_B));
 
       mpv = esl_sse_rightshift_ps(MMO(dpp,Q-1), infv);  /* Right shifts by 4 bytes. 4,8,12,x becomes x,4,8,12. */
       dpv = esl_sse_rightshift_ps(DMO(dpp,Q-1), infv);
       ipv = esl_sse_rightshift_ps(IMO(dpp,Q-1), infv);
       for (q = 0; q < Q; q++)
 	{
-	  sv  =                _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), xBv);  tp++;
-	  sv  = _mm_max_ps(sv, _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), mpv)); tp++;
-	  sv  = _mm_max_ps(sv, _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), ipv)); tp++;
-	  sv  = _mm_max_ps(sv, _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), dpv)); tp++;
-	  sv  = _mm_add_ps(sv, *ppp);                                      ppp += 2;
-	  xEv = _mm_max_ps(xEv, sv);
+	  sv  =                simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), xBv);  tp++;
+	  sv  = simde_mm_max_ps(sv, simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), mpv)); tp++;
+	  sv  = simde_mm_max_ps(sv, simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), ipv)); tp++;
+	  sv  = simde_mm_max_ps(sv, simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), dpv)); tp++;
+	  sv  = simde_mm_add_ps(sv, *ppp);                                      ppp += 2;
+	  xEv = simde_mm_max_ps(xEv, sv);
 	  
 	  mpv = MMO(dpp,q);
 	  dpv = DMO(dpp,q);
@@ -114,11 +114,11 @@ p7_OptimalAccuracy(const P7_OPROFILE *om, const P7_OMX *pp, P7_OMX *ox, float *r
 	  MMO(dpc,q) = sv;
 	  DMO(dpc,q) = dcv;
 
-	  dcv = _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), sv); tp++;
+	  dcv = simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), sv); tp++;
 
-	  sv         =                _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), mpv);   tp++;
-	  sv         = _mm_max_ps(sv, _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), ipv));  tp++;
-	  IMO(dpc,q) = _mm_add_ps(sv, *ppp);                                       ppp++;
+	  sv         =                simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), mpv);   tp++;
+	  sv         = simde_mm_max_ps(sv, simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), ipv));  tp++;
+	  IMO(dpc,q) = simde_mm_add_ps(sv, *ppp);                                       ppp++;
 	}
       
       /* dcv has carried through from end of q loop above; store it 
@@ -128,8 +128,8 @@ p7_OptimalAccuracy(const P7_OPROFILE *om, const P7_OMX *pp, P7_OMX *ox, float *r
       tp  = om->tfv + 7*Q;	/* set tp to start of the DD's */
       for (q = 0; q < Q; q++)
 	{
-	  DMO(dpc, q) = _mm_max_ps(dcv, DMO(dpc, q));
-	  dcv         = _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), DMO(dpc,q));   tp++;
+	  DMO(dpc, q) = simde_mm_max_ps(dcv, DMO(dpc, q));
+	  dcv         = simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), DMO(dpc,q));   tp++;
 	}
 
       /* fully serialized D->D; can optimize later */
@@ -139,13 +139,13 @@ p7_OptimalAccuracy(const P7_OPROFILE *om, const P7_OMX *pp, P7_OMX *ox, float *r
 	  tp  = om->tfv + 7*Q;	
 	  for (q = 0; q < Q; q++)
 	    {
-	      DMO(dpc, q) = _mm_max_ps(dcv, DMO(dpc, q));
-	      dcv         = _mm_and_ps(_mm_cmpgt_ps(*tp, zerov), dcv);   tp++;
+	      DMO(dpc, q) = simde_mm_max_ps(dcv, DMO(dpc, q));
+	      dcv         = simde_mm_and_ps(simde_mm_cmpgt_ps(*tp, zerov), dcv);   tp++;
 	    }
 	}
 
       /* D->E paths */
-      for (q = 0; q < Q; q++) xEv = _mm_max_ps(xEv, DMO(dpc,q));
+      for (q = 0; q < Q; q++) xEv = simde_mm_max_ps(xEv, DMO(dpc,q));
       
       /* Specials */
       esl_sse_hmax_ps(xEv, &(XMXo(i,p7X_E)));
@@ -268,7 +268,7 @@ get_postprob(const P7_OMX *pp, int scur, int sprv, int k, int i)
   int     Q     = p7O_NQF(pp->M);
   int     q     = (k-1) % Q;		/* (q,r) is position of the current DP cell M(i,k) */
   int     r     = (k-1) / Q;
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
 
   switch (scur) {
   case p7T_M: u.v = MMO(pp->dpf[i], q); return u.p[r]; 
@@ -287,11 +287,11 @@ select_m(const P7_OPROFILE *om, const P7_OMX *ox, int i, int k)
   int     Q     = p7O_NQF(ox->M);
   int     q     = (k-1) % Q;		/* (q,r) is position of the current DP cell M(i,k) */
   int     r     = (k-1) / Q;
-  __m128 *tp    = om->tfv + 7*q;       	/* *tp now at start of transitions to cur cell M(i,k) */
-  __m128  xBv   = _mm_set1_ps(ox->xmx[(i-1)*p7X_NXCELLS+p7X_B]);
-  __m128  zerov = _mm_setzero_ps();
-  __m128  mpv, dpv, ipv;
-  union { __m128 v; float p[4]; } u, tv;
+  simde__m128 *tp    = om->tfv + 7*q;       	/* *tp now at start of transitions to cur cell M(i,k) */
+  simde__m128  xBv   = simde_mm_set1_ps(ox->xmx[(i-1)*p7X_NXCELLS+p7X_B]);
+  simde__m128  zerov = simde_mm_setzero_ps();
+  simde__m128  mpv, dpv, ipv;
+  union { simde__m128 v; float p[4]; } u, tv;
   float   path[4];
   int     state[4] = { p7T_M, p7T_I, p7T_D, p7T_B };
   
@@ -321,8 +321,8 @@ select_d(const P7_OPROFILE *om, const P7_OMX *ox, int i, int k)
   int     Q     = p7O_NQF(ox->M);
   int     q     = (k-1) % Q;		/* (q,r) is position of the current DP cell D(i,k) */
   int     r     = (k-1) / Q;
-  __m128  zerov = _mm_setzero_ps();
-  union { __m128 v; float p[4]; } mpv, dpv, tmdv, tddv;
+  simde__m128  zerov = simde_mm_setzero_ps();
+  union { simde__m128 v; float p[4]; } mpv, dpv, tmdv, tddv;
   float   path[2];
 
   if (q > 0) {
@@ -349,8 +349,8 @@ select_i(const P7_OPROFILE *om, const P7_OMX *ox, int i, int k)
   int     Q    = p7O_NQF(ox->M);
   int     q    = (k-1) % Q;		/* (q,r) is position of the current DP cell D(i,k) */
   int     r    = (k-1) / Q;
-  __m128 *tp   = om->tfv + 7*q + p7O_MI;
-  union { __m128 v; float p[4]; } tv, mpv, ipv;
+  simde__m128 *tp   = om->tfv + 7*q + p7O_MI;
+  union { simde__m128 v; float p[4]; } tv, mpv, ipv;
   float   path[2];
 
   mpv.v = ox->dpf[i-1][q*3 + p7X_M]; tv.v = *tp;  path[0] = ((tv.p[r] == 0.0) ? -eslINFINITY : mpv.p[r]);  tp++;
@@ -392,8 +392,8 @@ static inline int
 select_e(const P7_OPROFILE *om, const P7_OMX *ox, int i, int *ret_k)
 {
   int     Q     = p7O_NQF(ox->M);
-  __m128 *dp    = ox->dpf[i];
-  union { __m128 v; float p[4]; } u;
+  simde__m128 *dp    = ox->dpf[i];
+  union { simde__m128 v; float p[4]; } u;
   float  max   = -eslINFINITY;
   int    smax, kmax;
   int    q,r;

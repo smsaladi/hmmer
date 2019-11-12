@@ -68,28 +68,28 @@
 int
 p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, float *ret_sc)
 {
-  register __m128 mpv, dpv, ipv;   /* previous row values                                       */
-  register __m128 sv;		   /* temp storage of 1 curr row value in progress              */
-  register __m128 dcv;		   /* delayed storage of D(i,q+1)                               */
-  register __m128 xEv;		   /* E state: keeps max for Mk->E as we go                     */
-  register __m128 xBv;		   /* B state: splatted vector of B[i-1] for B->Mk calculations */
-  register __m128 Dmaxv;           /* keeps track of maximum D cell on row                      */
-  __m128  infv;			   /* -eslINFINITY in a vector                                  */
+  register simde__m128 mpv, dpv, ipv;   /* previous row values                                       */
+  register simde__m128 sv;		   /* temp storage of 1 curr row value in progress              */
+  register simde__m128 dcv;		   /* delayed storage of D(i,q+1)                               */
+  register simde__m128 xEv;		   /* E state: keeps max for Mk->E as we go                     */
+  register simde__m128 xBv;		   /* B state: splatted vector of B[i-1] for B->Mk calculations */
+  register simde__m128 Dmaxv;           /* keeps track of maximum D cell on row                      */
+  simde__m128  infv;			   /* -eslINFINITY in a vector                                  */
   float    xN, xE, xB, xC, xJ;	   /* special states' scores                                    */
   float    Dmax;		   /* maximum D cell on row                                     */
   int i;			   /* counter over sequence positions 1..L                      */
   int q;			   /* counter over vectors 0..nq-1                              */
   int Q       = p7O_NQF(om->M);	   /* segment length: # of vectors                              */
-  __m128 *dp  = ox->dpf[0];	   /* using {MDI}MX(q) macro requires initialization of <dp>    */
-  __m128 *rsc;			   /* will point at om->rf[x] for residue x[i]                  */
-  __m128 *tsc;			   /* will point into (and step thru) om->tf                    */
+  simde__m128 *dp  = ox->dpf[0];	   /* using {MDI}MX(q) macro requires initialization of <dp>    */
+  simde__m128 *rsc;			   /* will point at om->rf[x] for residue x[i]                  */
+  simde__m128 *tsc;			   /* will point into (and step thru) om->tf                    */
 
   /* Check that the DP matrix is ok for us. */
   if (Q > ox->allocQ4) ESL_EXCEPTION(eslEINVAL, "DP matrix allocated too small");
   ox->M  = om->M;
 
   /* Initialization. */
-  infv = _mm_set1_ps(-eslINFINITY);
+  infv = simde_mm_set1_ps(-eslINFINITY);
   for (q = 0; q < Q; q++)
     MMXo(q) = IMXo(q) = DMXo(q) = infv;
   xN   = 0.;
@@ -109,7 +109,7 @@ p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, fl
       dcv   = infv;
       xEv   = infv;
       Dmaxv = infv;
-      xBv   = _mm_set1_ps(xB);
+      xBv   = simde_mm_set1_ps(xB);
 
       mpv = esl_sse_rightshift_ps(MMXo(Q-1), infv);  /* Right shifts by 4 bytes. 4,8,12,x becomes x,4,8,12. */
       dpv = esl_sse_rightshift_ps(DMXo(Q-1), infv);
@@ -117,12 +117,12 @@ p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, fl
       for (q = 0; q < Q; q++)
 	{
 	  /* Calculate new MMXo(i,q); don't store it yet, hold it in sv. */
-	  sv   =                _mm_add_ps(xBv, *tsc);  tsc++;
-	  sv   = _mm_max_ps(sv, _mm_add_ps(mpv, *tsc)); tsc++;
-	  sv   = _mm_max_ps(sv, _mm_add_ps(ipv, *tsc)); tsc++;
-	  sv   = _mm_max_ps(sv, _mm_add_ps(dpv, *tsc)); tsc++;
-	  sv   = _mm_add_ps(sv, *rsc);                  rsc++;
-	  xEv  = _mm_max_ps(xEv, sv);
+	  sv   =                simde_mm_add_ps(xBv, *tsc);  tsc++;
+	  sv   = simde_mm_max_ps(sv, simde_mm_add_ps(mpv, *tsc)); tsc++;
+	  sv   = simde_mm_max_ps(sv, simde_mm_add_ps(ipv, *tsc)); tsc++;
+	  sv   = simde_mm_max_ps(sv, simde_mm_add_ps(dpv, *tsc)); tsc++;
+	  sv   = simde_mm_add_ps(sv, *rsc);                  rsc++;
+	  xEv  = simde_mm_max_ps(xEv, sv);
 	  
 	  /* Load {MDI}(i-1,q) into mpv, dpv, ipv;
 	   * {MDI}MX(q) is then the current, not the prev row
@@ -138,13 +138,13 @@ p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, fl
 	  /* Calculate the next D(i,q+1) partially: M->D only;
            * delay storage, holding it in dcv
 	   */
-	  dcv   = _mm_add_ps(sv, *tsc); tsc++;
-	  Dmaxv = _mm_max_ps(dcv, Dmaxv);
+	  dcv   = simde_mm_add_ps(sv, *tsc); tsc++;
+	  Dmaxv = simde_mm_max_ps(dcv, Dmaxv);
 
 	  /* Calculate and store I(i,q) */
-	  sv     =                _mm_add_ps(mpv, *tsc);  tsc++;
-	  sv     = _mm_max_ps(sv, _mm_add_ps(ipv, *tsc)); tsc++;
-	  IMXo(q) = _mm_add_ps(sv, *rsc);                  rsc++;
+	  sv     =                simde_mm_add_ps(mpv, *tsc);  tsc++;
+	  sv     = simde_mm_max_ps(sv, simde_mm_add_ps(ipv, *tsc)); tsc++;
+	  IMXo(q) = simde_mm_add_ps(sv, *rsc);                  rsc++;
 	}	  
 
       /* Now the "special" states, which start from Mk->E (->C, ->J->B) */
@@ -178,8 +178,8 @@ p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, fl
 	  tsc = om->tf + 7*Q;	/* set tsc to start of the DD's */
 	  for (q = 0; q < Q; q++) 
 	    {
-	      DMXo(q) = _mm_max_ps(dcv, DMXo(q));	
-	      dcv     = _mm_add_ps(DMXo(q), *tsc); tsc++;
+	      DMXo(q) = simde_mm_max_ps(dcv, DMXo(q));	
+	      dcv     = simde_mm_add_ps(DMXo(q), *tsc); tsc++;
 	    }
 
 	  /* We may have to do up to three more passes; the check
@@ -192,8 +192,8 @@ p7_ViterbiScore(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, P7_OMX *ox, fl
 	    for (q = 0; q < Q; q++) 
 	      {
 		if (! esl_sse_any_gt_ps(dcv, DMXo(q))) break;
-		DMXo(q) = _mm_max_ps(dcv, DMXo(q));	
-		dcv     = _mm_add_ps(DMXo(q), *tsc);   tsc++;
+		DMXo(q) = simde_mm_max_ps(dcv, DMXo(q));	
+		dcv     = simde_mm_add_ps(DMXo(q), *tsc);   tsc++;
 	      }	    
 	  } while (q == Q);
 	}

@@ -74,8 +74,8 @@ enum p7o_tsc_e          { p7O_BM   = 0, p7O_MM   = 1,  p7O_IM = 2,  p7O_DM = 3, 
 
 typedef struct p7_oprofile_s {
   /* MSVFilter uses scaled, biased uchars: 16x unsigned byte vectors                 */
-  __m128i **rbv;         /* match scores [x][q]: rm, rm[0] are allocated      */
-  __m128i **sbv;         /* match scores for ssvfilter                        */
+  simde__m128i **rbv;         /* match scores [x][q]: rm, rm[0] are allocated      */
+  simde__m128i **sbv;         /* match scores for ssvfilter                        */
   uint8_t   tbm_b;    /* constant B->Mk cost:    scaled log 2/M(M+1)       */
   uint8_t   tec_b;    /* constant E->C  cost:    scaled log 0.5            */
   uint8_t   tjb_b;    /* constant NCJ move cost: scaled log 3/(L+3)        */
@@ -84,8 +84,8 @@ typedef struct p7_oprofile_s {
   uint8_t   bias_b;    /* positive bias to emission scores, make them >=0   */
 
   /* ViterbiFilter uses scaled swords: 8x signed 16-bit integer vectors              */
-  __m128i **rwv;    /* [x][q]: rw, rw[0] are allocated  [Kp][Q8]         */
-  __m128i  *twv;    /* transition score blocks          [8*Q8]           */
+  simde__m128i **rwv;    /* [x][q]: rw, rw[0] are allocated  [Kp][Q8]         */
+  simde__m128i  *twv;    /* transition score blocks          [8*Q8]           */
   int16_t   xw[p7O_NXSTATES][p7O_NXTRANS]; /* NECJ state transition costs            */
   float     scale_w;            /* score units: typically 500 / log(2), 1/500 bits   */
   int16_t   base_w;             /* offset of sword scores: typically +12000          */
@@ -93,17 +93,17 @@ typedef struct p7_oprofile_s {
   float     ncj_roundoff;  /* missing precision on NN,CC,JJ after rounding      */
 
   /* Forward, Backward use IEEE754 single-precision floats: 4x vectors               */
-  __m128 **rfv;         /* [x][q]:  rf, rf[0] are allocated [Kp][Q4]         */
-  __m128  *tfv;          /* transition probability blocks    [8*Q4]           */
+  simde__m128 **rfv;         /* [x][q]:  rf, rf[0] are allocated [Kp][Q4]         */
+  simde__m128  *tfv;          /* transition probability blocks    [8*Q4]           */
   float    xf[p7O_NXSTATES][p7O_NXTRANS]; /* NECJ transition costs                   */
 
   /* Our actual vector mallocs, before we align the memory                           */
-  __m128i  *rbv_mem;
-  __m128i  *sbv_mem;
-  __m128i  *rwv_mem;
-  __m128i  *twv_mem;
-  __m128   *tfv_mem;
-  __m128   *rfv_mem;
+  simde__m128i  *rbv_mem;
+  simde__m128i  *sbv_mem;
+  simde__m128i  *rwv_mem;
+  simde__m128i  *twv_mem;
+  simde__m128   *tfv_mem;
+  simde__m128   *rfv_mem;
   
   /* Disk offset information for hmmpfam's fast model retrieval                      */
   off_t  offs[p7_NOFFSETS];     /* p7_{MFP}OFFSET, or -1                             */
@@ -152,7 +152,7 @@ typedef struct {
 static inline float 
 p7_oprofile_FGetEmission(const P7_OPROFILE *om, int k, int x)
 {
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
   int   Q = p7O_NQF(om->M);
   int   q = ((k-1) % Q);
   int   r = (k-1)/Q;
@@ -185,9 +185,9 @@ typedef struct p7_omx_s {
   int       L;      /* current actual sequence dimension                           */
 
   /* The main dynamic programming matrix for M,D,I states                                      */
-  __m128  **dpf;    /* striped DP matrix for [0,1..L][0..Q-1][MDI], float vectors  */
-  __m128i **dpw;    /* striped DP matrix for [0,1..L][0..Q-1][MDI], sword vectors  */
-  __m128i **dpb;    /* striped DP matrix for [0,1..L][0..Q-1] uchar vectors        */
+  simde__m128  **dpf;    /* striped DP matrix for [0,1..L][0..Q-1][MDI], float vectors  */
+  simde__m128i **dpw;    /* striped DP matrix for [0,1..L][0..Q-1][MDI], sword vectors  */
+  simde__m128i **dpb;    /* striped DP matrix for [0,1..L][0..Q-1] uchar vectors        */
   void     *dp_mem;    /* DP memory shared by <dpb>, <dpw>, <dpf>                     */
   int       allocR;    /* current allocated # rows in dp{uf}. allocR >= validR >= L+1 */
   int       validR;    /* current # of rows actually pointing at DP memory            */
@@ -226,7 +226,7 @@ typedef struct p7_omx_s {
 static inline float
 p7_omx_FGetMDI(const P7_OMX *ox, int s, int i, int k)
 {
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
   int   Q = p7O_NQF(ox->M);
   int   q = p7X_NSCELLS * ((k-1) % Q) + s;
   int   r = (k-1)/Q;
@@ -237,7 +237,7 @@ p7_omx_FGetMDI(const P7_OMX *ox, int s, int i, int k)
 static inline void
 p7_omx_FSetMDI(const P7_OMX *ox, int s, int i, int k, float val)
 {
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
   int   Q = p7O_NQF(ox->M);
   int   q = p7X_NSCELLS * ((k-1) % Q) + s;
   int   r = (k-1)/Q;
@@ -360,7 +360,7 @@ impl_Init(void)
    * values in the floating point calculations, set the processor flag
    * so sub-normals are "flushed" immediately to zero.
    */
-  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+  SIMDE_MM_SET_FLUSH_ZERO_MODE(SIMDE_MM_FLUSH_ZERO_ON);
 #endif
 
 #ifdef _PMMINTRIN_H_INCLUDED
@@ -370,7 +370,7 @@ impl_Init(void)
    * scalar calculations will agree across architectures.
    * (See TW notes  2012/0106_printf_underflow_bug/00NOTES for details)
    */
-  _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+  SIMDE_MM_SET_DENORMALS_ZERO_MODE(SIMDE_MM_DENORMALS_ZERO_ON);
 #endif
 }
 #endif /* P7_IMPL_SSE_INCLUDED */
@@ -422,7 +422,7 @@ impl_Init(void)
  * 
  * A note on memory alignment: malloc() is required to return a
  * pointer "suitably aligned so that it may be aligned to a pointer of
- * any type of object" (C99 7.20.3). __m128 vectors are 128-bits wide,
+ * any type of object" (C99 7.20.3). simde__m128 vectors are 128-bits wide,
  * so malloc() ought to return a pointer aligned on a 16-byte
  * boundary.  However, this is not the case for glibc, and apparently
  * other system libraries. Google turns up threads of arguments

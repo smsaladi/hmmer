@@ -130,7 +130,7 @@ p7_oprofile_MPIPackSize(P7_OPROFILE *om, MPI_Comm comm, int *ret_n)
   int   Q4  = p7O_NQF(om->M);
   int   Q8  = p7O_NQW(om->M);
   int   Q16 = p7O_NQB(om->M);
-  int   vsz = sizeof(__m128i);
+  int   vsz = sizeof(simde__m128i);
 
   /* MSV Filter information */
   if (MPI_Pack_size(5,          MPI_CHAR, comm, &sz) != 0) ESL_XEXCEPTION(eslESYS, "pack size failed");   n += sz;
@@ -213,7 +213,7 @@ p7_oprofile_MPIPack(P7_OPROFILE *om, char *buf, int n, int *pos, MPI_Comm comm)
   int   Q4    = p7O_NQF(om->M);
   int   Q8    = p7O_NQW(om->M);
   int   Q16   = p7O_NQB(om->M);
-  int   vsz   = sizeof(__m128i);
+  int   vsz   = sizeof(simde__m128i);
 
   /* model configuration */
   if (MPI_Pack(&om->M,            1,                      MPI_INT, buf, n, pos, comm) != 0) ESL_EXCEPTION(eslESYS, "pack failed");
@@ -341,7 +341,7 @@ p7_oprofile_MPIUnpack(char *buf, int n, int *pos, MPI_Comm comm, ESL_ALPHABET **
   int   x;
 
   int   Q4, Q8, Q16;
-  int   vsz = sizeof(__m128i);
+  int   vsz = sizeof(simde__m128i);
 
   P7_OPROFILE *om = NULL;
 

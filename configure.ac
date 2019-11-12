@@ -375,11 +375,11 @@ AC_SUBST(NEON_CFLAGS)
 # in order to avoid the performance penalty dealing with sub-normal
 # values in the floating point calculations.
 if test "$impl_choice" = "sse"; then
-  AC_MSG_CHECKING([whether _MM_SET_FLUSH_ZERO_MODE is supported])
+  AC_MSG_CHECKING([whether SIMDE_MM_SET_FLUSH_ZERO_MODE is supported])
   esl_save_cflags="$CFLAGS"
   CFLAGS="$CFLAGS $SSE_CFLAGS"
   AC_COMPILE_IFELSE(  [AC_LANG_PROGRAM([[#include <xmmintrin.h>]],
- 				 [[_MM_SET_FLUSH_ZERO_MODE (_MM_FLUSH_ZERO_ON);
+ 				 [[SIMDE_MM_SET_FLUSH_ZERO_MODE (SIMDE_MM_FLUSH_ZERO_ON);
 				 ]])],
 	[ AC_MSG_RESULT([yes])
           AC_DEFINE([HAVE_FLUSH_ZERO_MODE], 1, [Processor supports flush-to-zero mode])],

@@ -48,8 +48,8 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
   int      Q    = p7O_NQF(M);
   float   *xmx  = pp->xmx;	/* enables use of XMXo(i,s) macro */
   float    norm;
-  __m128  *rp;
-  __m128   sv;
+  simde__m128  *rp;
+  simde__m128   sv;
   float    xfactor;
   int      i,q,x;
   
@@ -57,7 +57,7 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
    * in generating the Ld residues in this domain.
    * The 0 row in <wrk> is used to hold these numbers.
    */
-  memcpy(pp->dpf[0], pp->dpf[1], sizeof(__m128) * 3 * Q);
+  memcpy(pp->dpf[0], pp->dpf[1], sizeof(simde__m128) * 3 * Q);
   XMXo(0,p7X_N) = XMXo(1,p7X_N);
   XMXo(0,p7X_C) = XMXo(1,p7X_C); /* 0.0 */
   XMXo(0,p7X_J) = XMXo(1,p7X_J); /* 0.0 */
@@ -66,8 +66,8 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
     {
       for (q = 0; q < Q; q++)
 	{
-	  pp->dpf[0][q*3 + p7X_M] = _mm_add_ps(pp->dpf[i][q*3 + p7X_M], pp->dpf[0][q*3 + p7X_M]);
-	  pp->dpf[0][q*3 + p7X_I] = _mm_add_ps(pp->dpf[i][q*3 + p7X_I], pp->dpf[0][q*3 + p7X_I]);
+	  pp->dpf[0][q*3 + p7X_M] = simde_mm_add_ps(pp->dpf[i][q*3 + p7X_M], pp->dpf[0][q*3 + p7X_M]);
+	  pp->dpf[0][q*3 + p7X_I] = simde_mm_add_ps(pp->dpf[i][q*3 + p7X_I], pp->dpf[0][q*3 + p7X_I]);
 	}
       XMXo(0,p7X_N) += XMXo(i,p7X_N);
       XMXo(0,p7X_C) += XMXo(i,p7X_C); 
@@ -76,11 +76,11 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
 
   /* Convert those expected #'s to frequencies, to use as posterior weights. */
   norm = 1.0 / (float) Ld;
-  sv   = _mm_set1_ps(norm);
+  sv   = simde_mm_set1_ps(norm);
   for (q = 0; q < Q; q++)
     {
-      pp->dpf[0][q*3 + p7X_M] = _mm_mul_ps(pp->dpf[0][q*3 + p7X_M], sv);
-      pp->dpf[0][q*3 + p7X_I] = _mm_mul_ps(pp->dpf[0][q*3 + p7X_I], sv);
+      pp->dpf[0][q*3 + p7X_M] = simde_mm_mul_ps(pp->dpf[0][q*3 + p7X_M], sv);
+      pp->dpf[0][q*3 + p7X_I] = simde_mm_mul_ps(pp->dpf[0][q*3 + p7X_I], sv);
     }
   XMXo(0,p7X_N) *= norm;
   XMXo(0,p7X_C) *= norm;
@@ -92,13 +92,13 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
   xfactor = XMXo(0, p7X_N) + XMXo(0, p7X_C) + XMXo(0, p7X_J); 
   for (x = 0; x < om->abc->K; x++)
     {
-      sv = _mm_setzero_ps();
+      sv = simde_mm_setzero_ps();
       rp = om->rfv[x];
       for (q = 0; q < Q; q++)
 	{
-	  sv = _mm_add_ps(sv, _mm_mul_ps(pp->dpf[0][q*3 + p7X_M], *rp)); rp++;
-	  sv = _mm_add_ps(sv,            pp->dpf[0][q*3 + p7X_I]);              /* insert odds implicitly 1.0 */
-	  //	  sv = _mm_add_ps(sv, _mm_mul_ps(pp->dpf[0][q*3 + p7X_I], *rp)); rp++; 
+	  sv = simde_mm_add_ps(sv, simde_mm_mul_ps(pp->dpf[0][q*3 + p7X_M], *rp)); rp++;
+	  sv = simde_mm_add_ps(sv,            pp->dpf[0][q*3 + p7X_I]);              /* insert odds implicitly 1.0 */
+	  //	  sv = simde_mm_add_ps(sv, simde_mm_mul_ps(pp->dpf[0][q*3 + p7X_I], *rp)); rp++; 
 	}
       esl_sse_hsum_ps(sv, &(null2[x]));
       null2[x] += xfactor;
@@ -130,14 +130,14 @@ p7_Null2_ByExpectation(const P7_OPROFILE *om, const P7_OMX *pp, float *null2)
 int
 p7_Null2_ByTrace(const P7_OPROFILE *om, const P7_TRACE *tr, int zstart, int zend, P7_OMX *wrk, float *null2)
 {
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
   int    Q  = p7O_NQF(om->M);
   int    Ld = 0;
   float *xmx = wrk->xmx;	/* enables use of XMXo macro */
   float  norm;
   float  xfactor;
-  __m128 sv;
-  __m128 *rp;
+  simde__m128 sv;
+  simde__m128 *rp;
   int    q, r;
   int    x;
   int    z;
@@ -145,8 +145,8 @@ p7_Null2_ByTrace(const P7_OPROFILE *om, const P7_TRACE *tr, int zstart, int zend
   /* We'll use the i=0 row in wrk for working space: dp[0][] and xmx[][0]. */
   for (q = 0; q < Q; q++)
     {
-      wrk->dpf[0][q*3 + p7X_M] = _mm_setzero_ps();
-      wrk->dpf[0][q*3 + p7X_I] = _mm_setzero_ps();
+      wrk->dpf[0][q*3 + p7X_M] = simde_mm_setzero_ps();
+      wrk->dpf[0][q*3 + p7X_I] = simde_mm_setzero_ps();
     }
   XMXo(0,p7X_N) =  0.0;
   XMXo(0,p7X_C) =  0.0;
@@ -177,11 +177,11 @@ p7_Null2_ByTrace(const P7_OPROFILE *om, const P7_TRACE *tr, int zstart, int zend
 	}
     }
   norm = 1.0 / (float) Ld;
-  sv = _mm_set1_ps(norm);
+  sv = simde_mm_set1_ps(norm);
   for (q = 0; q < Q; q++)
     {
-      wrk->dpf[0][q*3 + p7X_M] = _mm_mul_ps(wrk->dpf[0][q*3 + p7X_M], sv);
-      wrk->dpf[0][q*3 + p7X_I] = _mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], sv);
+      wrk->dpf[0][q*3 + p7X_M] = simde_mm_mul_ps(wrk->dpf[0][q*3 + p7X_M], sv);
+      wrk->dpf[0][q*3 + p7X_I] = simde_mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], sv);
     }
   XMXo(0,p7X_N) *= norm;
   XMXo(0,p7X_C) *= norm;
@@ -193,13 +193,13 @@ p7_Null2_ByTrace(const P7_OPROFILE *om, const P7_TRACE *tr, int zstart, int zend
   xfactor =  XMXo(0,p7X_N) + XMXo(0,p7X_C) + XMXo(0,p7X_J);
   for (x = 0; x < om->abc->K; x++)
     {
-      sv = _mm_setzero_ps();
+      sv = simde_mm_setzero_ps();
       rp = om->rfv[x];
       for (q = 0; q < Q; q++)
 	{
-	  sv = _mm_add_ps(sv, _mm_mul_ps(wrk->dpf[0][q*3 + p7X_M], *rp)); rp++;
-	  sv = _mm_add_ps(sv,            wrk->dpf[0][q*3 + p7X_I]); /* insert emission odds implicitly 1.0 */
-	  //	  sv = _mm_add_ps(sv, _mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], *rp)); rp++;
+	  sv = simde_mm_add_ps(sv, simde_mm_mul_ps(wrk->dpf[0][q*3 + p7X_M], *rp)); rp++;
+	  sv = simde_mm_add_ps(sv,            wrk->dpf[0][q*3 + p7X_I]); /* insert emission odds implicitly 1.0 */
+	  //	  sv = simde_mm_add_ps(sv, simde_mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], *rp)); rp++;
 	}
       esl_sse_hsum_ps(sv, &(null2[x]));
       null2[x] += xfactor;

@@ -974,22 +974,22 @@ typedef struct fm_diaglist_s {
 typedef struct {
 #if   defined (eslENABLE_SSE)
   /* mask arrays, and 16-byte-offsets into them */
-  __m128i *fm_masks_mem;
-  __m128i *fm_masks_v;
-  __m128i *fm_reverse_masks_mem;
-  __m128i *fm_reverse_masks_v;
-  __m128i *fm_chars_mem;
-  __m128i *fm_chars_v;
+  simde__m128i *fm_masks_mem;
+  simde__m128i *fm_masks_v;
+  simde__m128i *fm_reverse_masks_mem;
+  simde__m128i *fm_reverse_masks_v;
+  simde__m128i *fm_chars_mem;
+  simde__m128i *fm_chars_v;
 
   /*various precomputed vectors*/
-  __m128i fm_allones_v;
-  __m128i fm_zeros_v;
-  __m128i fm_neg128_v;
-  __m128i fm_m0f;  //00 00 11 11
-  __m128i fm_m01;  //01 01 01 01
-  __m128i fm_m11;  //00 00 00 11
+  simde__m128i fm_allones_v;
+  simde__m128i fm_zeros_v;
+  simde__m128i fm_neg128_v;
+  simde__m128i fm_m0f;  //00 00 11 11
+  simde__m128i fm_m01;  //01 01 01 01
+  simde__m128i fm_m11;  //00 00 00 11
 
-  /* no non-__m128i- elements above this line */
+  /* no non-simde__m128i- elements above this line */
 #endif //#if   defined (eslENABLE_SSE)
 
   /*counter, to compute FM-index speed*/
@@ -1013,25 +1013,25 @@ typedef struct {
 
 
 #if   defined (eslENABLE_SSE)
-//used to convert from a byte array to an __m128i
+//used to convert from a byte array to an simde__m128i
 typedef union {
         uint8_t bytes[16];
-        __m128i m128;
+        simde__m128i m128;
         } byte_m128;
 
 
 /* Gather the sum of all counts in a 16x8-bit element into a single 16-bit
  *  element of the register (the 0th element)
  *
- *  the _mm_sad_epu8  accumulates 8-bit counts into 16-bit counts:
+ *  the simde_mm_sad_epu8  accumulates 8-bit counts into 16-bit counts:
  *      left 8 counts (64-bits) accumulate in counts_v[0],
  *      right 8 counts in counts_v[4]  (the other 6 16-bit ints are 0)
- *  the _mm_shuffle_epi32  flips the 4th int into the 0th slot
+ *  the simde_mm_shuffle_epi32  flips the 4th int into the 0th slot
  */
 #define FM_GATHER_8BIT_COUNTS( in_v, mid_v, out_v  ) do {\
-    mid_v = _mm_sad_epu8 (in_v, cfg->fm_zeros_v);\
-    tmp_v = _mm_shuffle_epi32(mid_v, _MM_SHUFFLE(1, 1, 1, 2));\
-    out_v = _mm_add_epi16(mid_v, tmp_v);\
+    mid_v = simde_mm_sad_epu8 (in_v, cfg->fm_zeros_v);\
+    tmp_v = simde_mm_shuffle_epi32(mid_v, SIMDE_MM_SHUFFLE(1, 1, 1, 2));\
+    out_v = simde_mm_add_epi16(mid_v, tmp_v);\
   } while (0)
 
 
@@ -1055,13 +1055,13 @@ typedef union {
  *
  */
 #define FM_MATCH_2BIT(in_v, c_v, a_v, b_v, out_v) do {\
-    a_v = _mm_xor_si128(in_v, c_v);\
+    a_v = simde_mm_xor_si128(in_v, c_v);\
     \
-    b_v  = _mm_srli_epi16(a_v, 1);\
-    a_v  = _mm_or_si128(a_v, b_v);\
-    b_v  = _mm_and_si128(a_v, cfg->fm_m01);\
+    b_v  = simde_mm_srli_epi16(a_v, 1);\
+    a_v  = simde_mm_or_si128(a_v, b_v);\
+    b_v  = simde_mm_and_si128(a_v, cfg->fm_m01);\
     \
-    out_v  = _mm_subs_epi8(cfg->fm_m01,b_v);\
+    out_v  = simde_mm_subs_epi8(cfg->fm_m01,b_v);\
   } while (0)
 
 
@@ -1079,15 +1079,15 @@ typedef union {
  * final 2 add()s        : tack current counts on to already-tabulated counts.
  */
 #define FM_COUNT_2BIT(a_v, b_v, cnts_v) do {\
-        b_v = _mm_srli_epi16(a_v, 4);\
-        a_v  = _mm_add_epi16(a_v, b_v);\
+        b_v = simde_mm_srli_epi16(a_v, 4);\
+        a_v  = simde_mm_add_epi16(a_v, b_v);\
         \
-        b_v = _mm_srli_epi16(a_v, 2);\
-        a_v  = _mm_and_si128(a_v,cfg->fm_m11);\
-        b_v = _mm_and_si128(b_v,cfg->fm_m11);\
+        b_v = simde_mm_srli_epi16(a_v, 2);\
+        a_v  = simde_mm_and_si128(a_v,cfg->fm_m11);\
+        b_v = simde_mm_and_si128(b_v,cfg->fm_m11);\
         \
-        cnts_v = _mm_add_epi16(cnts_v, a_v);\
-        cnts_v = _mm_add_epi16(cnts_v, b_v);\
+        cnts_v = simde_mm_add_epi16(cnts_v, a_v);\
+        cnts_v = simde_mm_add_epi16(cnts_v, b_v);\
   } while (0)
 
 
@@ -1110,12 +1110,12 @@ typedef union {
  * cmpeq()x2     : test if both left and right == c.  For each, if ==c , value = 11111111 (-1)
  */
 #define FM_MATCH_4BIT(in_v, c_v, out1_v, out2_v) do {\
-    out1_v    = _mm_srli_epi16(in_v, 4);\
-    out2_v    = _mm_and_si128(in_v, cfg->fm_m0f);\
-    out1_v    = _mm_and_si128(out1_v, cfg->fm_m0f);\
+    out1_v    = simde_mm_srli_epi16(in_v, 4);\
+    out2_v    = simde_mm_and_si128(in_v, cfg->fm_m0f);\
+    out1_v    = simde_mm_and_si128(out1_v, cfg->fm_m0f);\
     \
-    out1_v    = _mm_cmpeq_epi8(out1_v, c_v);\
-    out2_v    = _mm_cmpeq_epi8(out2_v, c_v);\
+    out1_v    = simde_mm_cmpeq_epi8(out1_v, c_v);\
+    out2_v    = simde_mm_cmpeq_epi8(out2_v, c_v);\
   } while (0)
 
 
@@ -1137,12 +1137,12 @@ typedef union {
  * cmplt()x2     : test if both left and right < c.  For each, if <c , value = 11111111 (-1)
  */
 #define FM_LT_4BIT(in_v, c_v, out1_v, out2_v) do {\
-    out1_v    = _mm_srli_epi16(in_v, 4);\
-    out2_v    = _mm_and_si128(in_v, cfg->fm_m0f);\
-    out1_v    = _mm_and_si128(out1_v, cfg->fm_m0f);\
+    out1_v    = simde_mm_srli_epi16(in_v, 4);\
+    out2_v    = simde_mm_and_si128(in_v, cfg->fm_m0f);\
+    out1_v    = simde_mm_and_si128(out1_v, cfg->fm_m0f);\
     \
-    out1_v    = _mm_cmplt_epi8(out1_v, c_v);\
-    out2_v    = _mm_cmplt_epi8(out2_v, c_v);\
+    out1_v    = simde_mm_cmplt_epi8(out1_v, c_v);\
+    out2_v    = simde_mm_cmplt_epi8(out2_v, c_v);\
   } while (0)
 
 
@@ -1157,8 +1157,8 @@ typedef union {
  * so subtracting the value of the byte is the same as adding 0 or 1.
  */
 #define FM_COUNT_4BIT(in1_v, in2_v, cnts_v) do {\
-    cnts_v = _mm_subs_epi8(cnts_v, in1_v);\
-    cnts_v = _mm_subs_epi8(cnts_v, in2_v);\
+    cnts_v = simde_mm_subs_epi8(cnts_v, in1_v);\
+    cnts_v = simde_mm_subs_epi8(cnts_v, in2_v);\
   } while (0)
 
 

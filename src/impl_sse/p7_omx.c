@@ -81,14 +81,14 @@ p7_omx_Create(int allocM, int allocL, int allocXL)
   ox->allocQ16 = p7O_NQB(allocM);
   ox->ncells   = ox->allocR * ox->allocQ4 * 4;      /* # of DP cells allocated, where 1 cell contains MDI */
 
-  ESL_ALLOC(ox->dp_mem, sizeof(__m128) * ox->allocR * ox->allocQ4 * p7X_NSCELLS + 15);  /* floats always dominate; +15 for alignment */
-  ESL_ALLOC(ox->dpb,    sizeof(__m128i *) * ox->allocR);
-  ESL_ALLOC(ox->dpw,    sizeof(__m128i *) * ox->allocR);
-  ESL_ALLOC(ox->dpf,    sizeof(__m128  *) * ox->allocR);
+  ESL_ALLOC(ox->dp_mem, sizeof(simde__m128) * ox->allocR * ox->allocQ4 * p7X_NSCELLS + 15);  /* floats always dominate; +15 for alignment */
+  ESL_ALLOC(ox->dpb,    sizeof(simde__m128i *) * ox->allocR);
+  ESL_ALLOC(ox->dpw,    sizeof(simde__m128i *) * ox->allocR);
+  ESL_ALLOC(ox->dpf,    sizeof(simde__m128  *) * ox->allocR);
 
-  ox->dpb[0] = (__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
-  ox->dpw[0] = (__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
-  ox->dpf[0] = (__m128  *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+  ox->dpb[0] = (simde__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+  ox->dpw[0] = (simde__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+  ox->dpf[0] = (simde__m128  *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
 
   for (i = 1; i <= allocL; i++) {
     ox->dpf[i] = ox->dpf[0] + i * ox->allocQ4  * p7X_NSCELLS;
@@ -154,7 +154,7 @@ p7_omx_GrowTo(P7_OMX *ox, int allocM, int allocL, int allocXL)
    */
   if (ncells > ox->ncells)
     {
-      ESL_RALLOC(ox->dp_mem, p, sizeof(__m128) * (allocL+1) * nqf * p7X_NSCELLS + 15);
+      ESL_RALLOC(ox->dp_mem, p, sizeof(simde__m128) * (allocL+1) * nqf * p7X_NSCELLS + 15);
       ox->ncells = ncells;
       reset_row_pointers = TRUE;
     }
@@ -172,9 +172,9 @@ p7_omx_GrowTo(P7_OMX *ox, int allocM, int allocL, int allocXL)
    */
   if (allocL >= ox->allocR)
     {
-      ESL_RALLOC(ox->dpb, p, sizeof(__m128i *) * (allocL+1));
-      ESL_RALLOC(ox->dpw, p, sizeof(__m128i *) * (allocL+1));
-      ESL_RALLOC(ox->dpf, p, sizeof(__m128  *) * (allocL+1));
+      ESL_RALLOC(ox->dpb, p, sizeof(simde__m128i *) * (allocL+1));
+      ESL_RALLOC(ox->dpw, p, sizeof(simde__m128i *) * (allocL+1));
+      ESL_RALLOC(ox->dpf, p, sizeof(simde__m128  *) * (allocL+1));
       ox->allocR         = allocL+1;
       reset_row_pointers = TRUE;
     }
@@ -190,9 +190,9 @@ p7_omx_GrowTo(P7_OMX *ox, int allocM, int allocL, int allocXL)
   /* now reset the row pointers, if needed */
   if (reset_row_pointers)
     {
-      ox->dpb[0] = (__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
-      ox->dpw[0] = (__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
-      ox->dpf[0] = (__m128  *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+      ox->dpb[0] = (simde__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+      ox->dpw[0] = (simde__m128i *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
+      ox->dpf[0] = (simde__m128  *) ( ( (unsigned long int) ((char *) ox->dp_mem + 15) & (~0xf)));
 
       ox->validR = ESL_MIN( ox->ncells / (nqf * 4), ox->allocR);
       for (i = 1; i < ox->validR; i++)
@@ -232,7 +232,7 @@ p7_omx_FDeconvert(P7_OMX *ox, P7_GMX *gx)
 {
   int Q = p7O_NQF(ox->M);
   int i, q, r, k;
-  union { __m128 v; float p[4]; } u;
+  union { simde__m128 v; float p[4]; } u;
   float      **dp   = gx->dp;
   float       *xmx  = gx->xmx; 			    
 
@@ -383,12 +383,12 @@ p7_omx_SetDumpMode(FILE *fp, P7_OMX *ox, int truefalse)
 int
 p7_omx_DumpMFRow(P7_OMX *ox, int rowi, uint8_t xE, uint8_t xN, uint8_t xJ, uint8_t xB, uint8_t xC)
 {
-  __m128i *dp = ox->dpb[0];	
+  simde__m128i *dp = ox->dpb[0];	
   int      M  = ox->M;
   int      Q  = p7O_NQB(M);
   uint8_t *v  = NULL;		/* array of unstriped scores  */
   int      q,z,k;
-  union { __m128i v; uint8_t i[16]; } tmp;
+  union { simde__m128i v; uint8_t i[16]; } tmp;
   int      status;
 
   ESL_ALLOC(v, sizeof(unsigned char) * ((Q*16)+1));
@@ -456,12 +456,12 @@ ERROR:
 int
 p7_omx_DumpVFRow(P7_OMX *ox, int rowi, int16_t xE, int16_t xN, int16_t xJ, int16_t xB, int16_t xC)
 {
-  __m128i *dp = ox->dpw[0];	/* must set <dp> before using {MDI}MX macros */
+  simde__m128i *dp = ox->dpw[0];	/* must set <dp> before using {MDI}MX macros */
   int      M  = ox->M;
   int      Q  = p7O_NQW(M);
   int16_t *v  = NULL;		/* array of unstriped, uninterleaved scores  */
   int      q,z,k;
-  union { __m128i v; int16_t i[8]; } tmp;
+  union { simde__m128i v; int16_t i[8]; } tmp;
   int      status;
 
   ESL_ALLOC(v, sizeof(int16_t) * ((Q*8)+1));
@@ -546,12 +546,12 @@ ERROR:
 int
 p7_omx_DumpFBRow(P7_OMX *ox, int logify, int rowi, int width, int precision, float xE, float xN, float xJ, float xB, float xC)
 {
-  __m128 *dp;
+  simde__m128 *dp;
   int      M  = ox->M;
   int      Q  = p7O_NQF(M);
   float   *v  = NULL;		/* array of uninterleaved, unstriped scores  */
   int      q,z,k;
-  union { __m128 v; float x[4]; } tmp;
+  union { simde__m128 v; float x[4]; } tmp;
   int      status;
 
   dp = (ox->allocR == 1) ? ox->dpf[0] :	ox->dpf[rowi];	  /* must set <dp> before using {MDI}MX macros */

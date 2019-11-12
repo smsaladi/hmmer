@@ -47,9 +47,9 @@
  *
  * The code governing the use of the J state in the original filter is:
  *
- *   xEv = _mm_subs_epu8(xEv, tecv);
- *   xJv = _mm_max_epu8(xJv,xEv);
- *   xBv = _mm_max_epu8(basev, xJv);
+ *   xEv = simde_mm_subs_epu8(xEv, tecv);
+ *   xJv = simde_mm_max_epu8(xJv,xEv);
+ *   xBv = simde_mm_max_epu8(basev, xJv);
  *
  * So for an xE value to be high enough to affect xJ, the following
  * inequality must be true:
@@ -77,10 +77,10 @@
  * Here is an analysis of what is going on in the central loop. The
  * original code is:
  *
- *   1: sv  = _mm_max_epu8(sv, xBv);
- *   2: sv  = _mm_adds_epu8(sv, biasv);      
- *   3: sv  = _mm_subs_epu8(sv, *rsc); rsc++;
- *   4: xEv = _mm_max_epu8(xEv, sv);	
+ *   1: sv  = simde_mm_max_epu8(sv, xBv);
+ *   2: sv  = simde_mm_adds_epu8(sv, biasv);      
+ *   3: sv  = simde_mm_subs_epu8(sv, *rsc); rsc++;
+ *   4: xEv = simde_mm_max_epu8(xEv, sv);	
  *
  * Here is a line by line description:
  *
@@ -127,8 +127,8 @@
  * operation, yet we need to subtract a signed byte in idea B. First
  * the new code, then the explanation:
  *
- *   sv   = _mm_subs_epi8(sv, *rsc); rsc++;
- *   xEv  = _mm_max_epu8(xEv, sv);
+ *   sv   = simde_mm_subs_epi8(sv, *rsc); rsc++;
+ *   xEv  = simde_mm_max_epu8(xEv, sv);
  *
  * The last line is unchanged, i.e. the overall max is still done as
  * an unsigned maximum. The subtraction is saturated to satisfy idea A
@@ -288,7 +288,7 @@
  * functions. Instead the are defined via macros. So a function
  * definition may look like this:
  *
- *   __m128i calc_band_6(ESL_DSQ *dsq, int L, P7_OPROFILE *om, int q, __m128i beginv, __m128i xEv)
+ *   simde__m128i calc_band_6(ESL_DSQ *dsq, int L, P7_OPROFILE *om, int q, simde__m128i beginv, simde__m128i xEv)
  *   {
  *     CALC(RESET_6, STEP_BANDS_6, CONVERT_6, 6)
  *   }
@@ -303,15 +303,15 @@
  * function. It is defined recursively:
  *
  *   #define RESET_1()
- *     register __m128i sv00 = beginv;
+ *     register simde__m128i sv00 = beginv;
  *
  *   #define RESET_2()
  *     RESET_1()
- *     register __m128i sv01 = beginv;
+ *     register simde__m128i sv01 = beginv;
  *
  *   #define RESET_3()
  *     RESET_2()
- *     register __m128i sv02 = beginv;
+ *     register simde__m128i sv02 = beginv;
  *
  * So the variables holding the scores for the diagonals are called
  * sv00, sv01, etc.
@@ -334,8 +334,8 @@
  * central calculation is done as described above:
  *
  *   #define STEP_SINGLE(sv)
- *     sv   = _mm_subs_epi8(sv, *rsc); rsc++;
- *     xEv  = _mm_max_epu8(xEv, sv);
+ *     sv   = simde_mm_subs_epi8(sv, *rsc); rsc++;
+ *     xEv  = simde_mm_max_epu8(xEv, sv);
  *
  * The CONVERT macro handles the second phase mentioned above where
  * the vectors have to be shifted. This is yet another recursive
@@ -359,8 +359,8 @@
  *     length_check(label)
  *     rsc = om->sbv[dsq[i]] + pos;
  *     step()
- *     sv = _mm_slli_si128(sv, 1);
- *     sv = _mm_or_si128(sv, beginv);
+ *     sv = simde_mm_slli_si128(sv, 1);
+ *     sv = simde_mm_or_si128(sv, beginv);
  *     i++;
  *
  * First a check is made. This is sometimes used to check whether the
@@ -391,7 +391,7 @@
  *
  * Even though the code is only around 500 lines, it expands to a
  * fairly large file when the macros are parsed. For example,
- * _mm_subs_epi8() is called 6,840 times even though it is only
+ * simde_mm_subs_epi8() is called 6,840 times even though it is only
  * present once in this file. The object file is still not
  * ridiculously large.
  *
@@ -429,8 +429,8 @@
 
 
 #define STEP_SINGLE(sv)                         \
-  sv   = _mm_subs_epi8(sv, *rsc); rsc++;        \
-  xEv  = _mm_max_epu8(xEv, sv);
+  sv   = simde_mm_subs_epi8(sv, *rsc); rsc++;        \
+  xEv  = simde_mm_max_epu8(xEv, sv);
 
 
 #define LENGTH_CHECK(label)                     \
@@ -516,8 +516,8 @@
   length_check(label)                                           \
   rsc = om->sbv[dsq[i]] + pos;                                   \
   step()                                                        \
-  sv = _mm_slli_si128(sv, 1);                                   \
-  sv = _mm_or_si128(sv, beginv);                                \
+  sv = simde_mm_slli_si128(sv, 1);                                   \
+  sv = simde_mm_or_si128(sv, beginv);                                \
   i++;
 
 
@@ -594,82 +594,82 @@
 
 
 #define RESET_1()                               \
-  register __m128i sv00 = beginv;
+  register simde__m128i sv00 = beginv;
 
 #define RESET_2()                               \
   RESET_1()                                     \
-  register __m128i sv01 = beginv;
+  register simde__m128i sv01 = beginv;
 
 #define RESET_3()                               \
   RESET_2()                                     \
-  register __m128i sv02 = beginv;
+  register simde__m128i sv02 = beginv;
 
 #define RESET_4()                               \
   RESET_3()                                     \
-  register __m128i sv03 = beginv;
+  register simde__m128i sv03 = beginv;
 
 #define RESET_5()                               \
   RESET_4()                                     \
-  register __m128i sv04 = beginv;
+  register simde__m128i sv04 = beginv;
 
 #define RESET_6()                               \
   RESET_5()                                     \
-  register __m128i sv05 = beginv;
+  register simde__m128i sv05 = beginv;
 
 #define RESET_7()                               \
   RESET_6()                                     \
-  register __m128i sv06 = beginv;
+  register simde__m128i sv06 = beginv;
 
 #define RESET_8()                               \
   RESET_7()                                     \
-  register __m128i sv07 = beginv;
+  register simde__m128i sv07 = beginv;
 
 #define RESET_9()                               \
   RESET_8()                                     \
-  register __m128i sv08 = beginv;
+  register simde__m128i sv08 = beginv;
 
 #define RESET_10()                              \
   RESET_9()                                     \
-  register __m128i sv09 = beginv;
+  register simde__m128i sv09 = beginv;
 
 #define RESET_11()                              \
   RESET_10()                                    \
-  register __m128i sv10 = beginv;
+  register simde__m128i sv10 = beginv;
 
 #define RESET_12()                              \
   RESET_11()                                    \
-  register __m128i sv11 = beginv;
+  register simde__m128i sv11 = beginv;
 
 #define RESET_13()                              \
   RESET_12()                                    \
-  register __m128i sv12 = beginv;
+  register simde__m128i sv12 = beginv;
 
 #define RESET_14()                              \
   RESET_13()                                    \
-  register __m128i sv13 = beginv;
+  register simde__m128i sv13 = beginv;
 
 #define RESET_15()                              \
   RESET_14()                                    \
-  register __m128i sv14 = beginv;
+  register simde__m128i sv14 = beginv;
 
 #define RESET_16()                              \
   RESET_15()                                    \
-  register __m128i sv15 = beginv;
+  register simde__m128i sv15 = beginv;
 
 #define RESET_17()                              \
   RESET_16()                                    \
-  register __m128i sv16 = beginv;
+  register simde__m128i sv16 = beginv;
 
 #define RESET_18()                              \
   RESET_17()                                    \
-  register __m128i sv17 = beginv;
+  register simde__m128i sv17 = beginv;
 
 
 #define CALC(reset, step, convert, width)       \
   int i;                                        \
   int i2;                                       \
   int Q        = p7O_NQB(om->M);                \
-  __m128i *rsc;                                 \
+  simde__m128i *rsc;                                 \
                                                 \
   int w = width;                                \
                                                 \
@@ -712,112 +712,112 @@ done2:                                          \
  return xEv;
 
 
-__m128i
-calc_band_1(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_1(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_1, STEP_BANDS_1, CONVERT_1, 1)
 }
 
-__m128i
-calc_band_2(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_2(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_2, STEP_BANDS_2, CONVERT_2, 2)
 }
 
-__m128i
-calc_band_3(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_3(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_3, STEP_BANDS_3, CONVERT_3, 3)
 }
 
-__m128i
-calc_band_4(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_4(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_4, STEP_BANDS_4, CONVERT_4, 4)
 }
 
-__m128i
-calc_band_5(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_5(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_5, STEP_BANDS_5, CONVERT_5, 5)
 }
 
-__m128i
-calc_band_6(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_6(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_6, STEP_BANDS_6, CONVERT_6, 6)
 }
 
 #if MAX_BANDS > 6 /* Only include needed functions to limit object file size */
-__m128i
-calc_band_7(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_7(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_7, STEP_BANDS_7, CONVERT_7, 7)
 }
 
-__m128i
-calc_band_8(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_8(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_8, STEP_BANDS_8, CONVERT_8, 8)
 }
 
-__m128i
-calc_band_9(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_9(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_9, STEP_BANDS_9, CONVERT_9, 9)
 }
 
-__m128i
-calc_band_10(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_10(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_10, STEP_BANDS_10, CONVERT_10, 10)
 }
 
-__m128i
-calc_band_11(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_11(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_11, STEP_BANDS_11, CONVERT_11, 11)
 }
 
-__m128i
-calc_band_12(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_12(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_12, STEP_BANDS_12, CONVERT_12, 12)
 }
 
-__m128i
-calc_band_13(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_13(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_13, STEP_BANDS_13, CONVERT_13, 13)
 }
 
-__m128i
-calc_band_14(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_14(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_14, STEP_BANDS_14, CONVERT_14, 14)
 }
 #endif /* MAX_BANDS > 6 */
 #if MAX_BANDS > 14
-__m128i
-calc_band_15(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_15(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_15, STEP_BANDS_15, CONVERT_15, 15)
 }
 
-__m128i
-calc_band_16(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_16(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_16, STEP_BANDS_16, CONVERT_16, 16)
 }
 
-__m128i
-calc_band_17(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_17(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_17, STEP_BANDS_17, CONVERT_17, 17)
 }
 
-__m128i
-calc_band_18(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i beginv, register __m128i xEv)
+simde__m128i
+calc_band_18(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, simde__m128i beginv, register simde__m128i xEv)
 {
   CALC(RESET_18, STEP_BANDS_18, CONVERT_18, 18)
 }
@@ -831,8 +831,8 @@ calc_band_18(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om, int q, __m128i be
 uint8_t
 get_xE(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om)
 {
-  __m128i xEv;		           /* E state: keeps max for Mk->E as we go                     */
-  __m128i beginv;                  /* begin scores                                              */
+  simde__m128i xEv;		           /* E state: keeps max for Mk->E as we go                     */
+  simde__m128i beginv;                  /* begin scores                                              */
 
   int q;			   /* counter over vectors 0..nq-1                              */
   int Q        = p7O_NQB(om->M);   /* segment length: # of vectors                              */
@@ -843,7 +843,7 @@ get_xE(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om)
   int i;                           /* counter for bands                                         */
 
   /* function pointers for the various number of vectors to use */
-  __m128i (*fs[MAX_BANDS + 1]) (const ESL_DSQ *, int, const P7_OPROFILE *, int, register __m128i, __m128i)
+  simde__m128i (*fs[MAX_BANDS + 1]) (const ESL_DSQ *, int, const P7_OPROFILE *, int, register simde__m128i, simde__m128i)
     = {NULL
        , calc_band_1,  calc_band_2,  calc_band_3,  calc_band_4,  calc_band_5,  calc_band_6
 #if MAX_BANDS > 6
@@ -854,7 +854,7 @@ get_xE(const ESL_DSQ *dsq, int L, const P7_OPROFILE *om)
 #endif
   };
 
-  beginv =  _mm_set1_epi8(-128);
+  beginv =  simde_mm_set1_epi8(-128);
   xEv    =  beginv;
 
   /* Use the highest number of bands but no more than MAX_BANDS */

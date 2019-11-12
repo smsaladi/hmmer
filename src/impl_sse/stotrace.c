@@ -127,11 +127,11 @@ select_m(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
   int     Q     = p7O_NQF(ox->M);
   int     q     = (k-1) % Q;		/* (q,r) is position of the current DP cell M(i,k) */
   int     r     = (k-1) / Q;
-  __m128 *tp    = om->tfv + 7*q;       	/* *tp now at start of transitions to cur cell M(i,k) */
-  __m128  xBv   = _mm_set1_ps(ox->xmx[(i-1)*p7X_NXCELLS+p7X_B]);
-  __m128  zerov = _mm_setzero_ps();
-  __m128  mpv, dpv, ipv;
-  union { __m128 v; float p[4]; } u;
+  simde__m128 *tp    = om->tfv + 7*q;       	/* *tp now at start of transitions to cur cell M(i,k) */
+  simde__m128  xBv   = simde_mm_set1_ps(ox->xmx[(i-1)*p7X_NXCELLS+p7X_B]);
+  simde__m128  zerov = simde_mm_setzero_ps();
+  simde__m128  mpv, dpv, ipv;
+  union { simde__m128 v; float p[4]; } u;
   float   path[4];
   int     state[4] = { p7T_B, p7T_M, p7T_I, p7T_D };
   
@@ -145,10 +145,10 @@ select_m(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
     ipv = esl_sse_rightshift_ps(ox->dpf[i-1][(Q-1)*3 + p7X_I], zerov);
   }	  
   
-  u.v = _mm_mul_ps(xBv, *tp); tp++;  path[0] = u.p[r];
-  u.v = _mm_mul_ps(mpv, *tp); tp++;  path[1] = u.p[r];
-  u.v = _mm_mul_ps(ipv, *tp); tp++;  path[2] = u.p[r];
-  u.v = _mm_mul_ps(dpv, *tp);        path[3] = u.p[r];
+  u.v = simde_mm_mul_ps(xBv, *tp); tp++;  path[0] = u.p[r];
+  u.v = simde_mm_mul_ps(mpv, *tp); tp++;  path[1] = u.p[r];
+  u.v = simde_mm_mul_ps(ipv, *tp); tp++;  path[2] = u.p[r];
+  u.v = simde_mm_mul_ps(dpv, *tp);        path[3] = u.p[r];
   esl_vec_FNorm(path, 4);
   return state[esl_rnd_FChoose(rng, path, 4)];
 }
@@ -160,10 +160,10 @@ select_d(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
   int     Q     = p7O_NQF(ox->M);
   int     q     = (k-1) % Q;		/* (q,r) is position of the current DP cell D(i,k) */
   int     r     = (k-1) / Q;
-  __m128  zerov = _mm_setzero_ps();
-  __m128  mpv, dpv;
-  __m128  tmdv, tddv;
-  union { __m128 v; float p[4]; } u;
+  simde__m128  zerov = simde_mm_setzero_ps();
+  simde__m128  mpv, dpv;
+  simde__m128  tmdv, tddv;
+  union { simde__m128 v; float p[4]; } u;
   float   path[2];
   int     state[2] = { p7T_M, p7T_D };
 
@@ -179,8 +179,8 @@ select_d(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
     tddv = esl_sse_rightshift_ps(om->tfv[8*Q-1],              zerov);
   }	  
 
-  u.v = _mm_mul_ps(mpv, tmdv); path[0] = u.p[r];
-  u.v = _mm_mul_ps(dpv, tddv); path[1] = u.p[r];
+  u.v = simde_mm_mul_ps(mpv, tmdv); path[0] = u.p[r];
+  u.v = simde_mm_mul_ps(dpv, tddv); path[1] = u.p[r];
   esl_vec_FNorm(path, 2);
   return state[esl_rnd_FChoose(rng, path, 2)];
 }
@@ -192,15 +192,15 @@ select_i(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
   int     Q     = p7O_NQF(ox->M);
   int     q    = (k-1) % Q;		/* (q,r) is position of the current DP cell D(i,k) */
   int     r    = (k-1) / Q;
-  __m128  mpv  = ox->dpf[i-1][q*3 + p7X_M];
-  __m128  ipv  = ox->dpf[i-1][q*3 + p7X_I];
-  __m128 *tp   = om->tfv + 7*q + p7O_MI;
-  union { __m128 v; float p[4]; } u;
+  simde__m128  mpv  = ox->dpf[i-1][q*3 + p7X_M];
+  simde__m128  ipv  = ox->dpf[i-1][q*3 + p7X_I];
+  simde__m128 *tp   = om->tfv + 7*q + p7O_MI;
+  union { simde__m128 v; float p[4]; } u;
   float   path[2];
   int     state[2] = { p7T_M, p7T_I };
 
-  u.v = _mm_mul_ps(mpv, *tp); tp++;  path[0] = u.p[r];
-  u.v = _mm_mul_ps(ipv, *tp);        path[1] = u.p[r];
+  u.v = simde_mm_mul_ps(mpv, *tp); tp++;  path[0] = u.p[r];
+  u.v = simde_mm_mul_ps(ipv, *tp);        path[1] = u.p[r];
   esl_vec_FNorm(path, 2);
   return state[esl_rnd_FChoose(rng, path, 2)];
 }
@@ -253,20 +253,20 @@ select_e(ESL_RANDOMNESS *rng, const P7_OPROFILE *om, const P7_OMX *ox, int i, in
   double sum   = 0.0;
   double roll  = esl_random(rng);
   double norm  = 1.0 / ox->xmx[i*p7X_NXCELLS+p7X_E];
-  __m128 xEv   = _mm_set1_ps(norm); /* all M, D already scaled exactly the same */
-  union { __m128 v; float p[4]; } u;
+  simde__m128 xEv   = simde_mm_set1_ps(norm); /* all M, D already scaled exactly the same */
+  union { simde__m128 v; float p[4]; } u;
   int    q,r;
 
   while (1) {
     for (q = 0; q < Q; q++)
       {
-	u.v = _mm_mul_ps(ox->dpf[i][q*3 + p7X_M], xEv);
+	u.v = simde_mm_mul_ps(ox->dpf[i][q*3 + p7X_M], xEv);
 	for (r = 0; r < 4; r++) {
 	  sum += u.p[r];
 	  if (roll < sum) { *ret_k = r*Q + q + 1; return p7T_M;}
 	}
 
-	u.v = _mm_mul_ps(ox->dpf[i][q*3 + p7X_D], xEv);
+	u.v = simde_mm_mul_ps(ox->dpf[i][q*3 + p7X_D], xEv);
 	for (r = 0; r < 4; r++) {
 	  sum += u.p[r];
 	  if (roll < sum) { *ret_k = r*Q + q + 1; return p7T_D;}

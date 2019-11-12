@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <x86intrin.h>
+// #include <x86intrin.h>
 
 #include "easel.h"
 #include "esl_sse.h"
@@ -75,10 +75,10 @@
 int
 p7_Decoding(const P7_OPROFILE *om, const P7_OMX *oxf, P7_OMX *oxb, P7_OMX *pp)
 {
-  __m128 *ppv;
-  __m128 *fv;
-  __m128 *bv;
-  __m128  totrv;
+  simde__m128 *ppv;
+  simde__m128 *fv;
+  simde__m128 *bv;
+  simde__m128  totrv;
   int    L  = oxf->L;
   int    M  = om->M;
   int    Q  = p7O_NQF(M);	
@@ -90,9 +90,9 @@ p7_Decoding(const P7_OPROFILE *om, const P7_OMX *oxf, P7_OMX *oxb, P7_OMX *pp)
 
   ppv = pp->dpf[0];
   for (q = 0; q < Q; q++) {
-    *ppv = _mm_setzero_ps(); ppv++;
-    *ppv = _mm_setzero_ps(); ppv++;
-    *ppv = _mm_setzero_ps(); ppv++;
+    *ppv = simde_mm_setzero_ps(); ppv++;
+    *ppv = simde_mm_setzero_ps(); ppv++;
+    *ppv = simde_mm_setzero_ps(); ppv++;
   }
   pp->xmx[p7X_E] = 0.0;
   pp->xmx[p7X_N] = 0.0;
@@ -105,22 +105,22 @@ p7_Decoding(const P7_OPROFILE *om, const P7_OMX *oxf, P7_OMX *oxb, P7_OMX *pp)
       ppv   =  pp->dpf[i];
       fv    = oxf->dpf[i];
       bv    = oxb->dpf[i];
-      totrv = _mm_set1_ps(scaleproduct * oxf->xmx[i*p7X_NXCELLS+p7X_SCALE]);
+      totrv = simde_mm_set1_ps(scaleproduct * oxf->xmx[i*p7X_NXCELLS+p7X_SCALE]);
 
       for (q = 0; q < Q; q++)
 	{
 	  /* M */
-	  *ppv = _mm_mul_ps(*fv,  *bv);
-	  *ppv = _mm_mul_ps(*ppv,  totrv);
+	  *ppv = simde_mm_mul_ps(*fv,  *bv);
+	  *ppv = simde_mm_mul_ps(*ppv,  totrv);
 	  ppv++;  fv++;  bv++;
 
 	  /* D */
-	  *ppv = _mm_setzero_ps();
+	  *ppv = simde_mm_setzero_ps();
 	  ppv++;  fv++;  bv++;
 
 	  /* I */
-	  *ppv = _mm_mul_ps(*fv,  *bv);
-	  *ppv = _mm_mul_ps(*ppv,  totrv);
+	  *ppv = simde_mm_mul_ps(*fv,  *bv);
+	  *ppv = simde_mm_mul_ps(*ppv,  totrv);
 	  ppv++;  fv++;  bv++;
 	}
       pp->xmx[i*p7X_NXCELLS+p7X_E] = 0.0;

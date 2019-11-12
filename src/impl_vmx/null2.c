@@ -208,7 +208,7 @@ p7_Null2_ByTrace(const P7_OPROFILE *om, const P7_TRACE *tr, int zstart, int zend
 	{
 	  sv = vec_madd(wrk->dpf[0][q*3 + p7X_M], *rp, sv); rp++;
 	  sv = vec_add(sv, wrk->dpf[0][q*3 + p7X_I]);       /* insert emission odds implicitly 1.0 */
-	  //	  sv = _mm_add_ps(sv, _mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], *rp)); rp++;
+	  //	  sv = simde_mm_add_ps(sv, simde_mm_mul_ps(wrk->dpf[0][q*3 + p7X_I], *rp)); rp++;
 	}
       null2[x] = esl_vmx_hsum_float(sv);
       null2[x] += xfactor;

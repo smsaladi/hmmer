@@ -11,8 +11,11 @@
 #include "esl_alphabet.h"
 #include "esl_random.h"
 
-#include <xmmintrin.h>    /* SSE  */
-#include <emmintrin.h>    /* SSE2 */
+#include <x86/mmx.h>
+#include <x86/sse.h>
+#include <x86/sse2.h>
+// #include <xmmintrin.h>    /* SSE  */
+// #include <emmintrin.h>    /* SSE2 */
 #ifdef __SSE3__
 #include <pmmintrin.h>   /* DENORMAL_MODE */
 #endif

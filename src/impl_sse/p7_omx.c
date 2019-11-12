@@ -15,8 +15,11 @@
 #include <math.h>
 #include <float.h>
 
-#include <xmmintrin.h>		/* SSE  */
-#include <emmintrin.h>		/* SSE2 */
+#include <x86/mmx.h>
+#include <x86/sse.h>
+#include <x86/sse2.h>
+// #include <xmmintrin.h>		/* SSE  */
+// #include <emmintrin.h>		/* SSE2 */
 
 #include "easel.h"
 #include "esl_alphabet.h"

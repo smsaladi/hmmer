@@ -14,8 +14,11 @@
 
 #include <float.h>
 
-#include <xmmintrin.h>
-#include <emmintrin.h>
+#include <x86/mmx.h>
+#include <x86/sse.h>
+#include <x86/sse2.h>
+// #include <xmmintrin.h>
+// #include <emmintrin.h>
 
 #include "easel.h"
 #include "esl_sse.h"
